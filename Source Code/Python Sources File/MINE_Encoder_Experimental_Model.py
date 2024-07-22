@@ -81,4 +81,17 @@ class AutoEncoder:
         ])
 
         self.autoencoder = keras.models.Sequential([self.encoder, self.channel, self.decoder])                              # Combine encoder, channel, and decoder into an autoencoder model
-        
+
+    def EbNo_to_noise(self, ebnodb):
+        '''Transform EbNo[dB]/snr to noise power'''
+        ebno = 10**(ebnodb/10)
+        noise_std = 1/np.sqrt(2*(self.k/self.n)*ebno)
+        return noise_std
+
+    def sample_Rayleigh_channel(self, x, noise_std):
+        '''Sample from a Rayleigh fading channel'''
+        h_sample = (1/np.sqrt(2)) * tf.sqrt(tf.random.normal(tf.shape(x))**2 + tf.random.normal(tf.shape(x))**2)
+        z_sample = tf.random.normal(tf.shape(x), stddev=noise_std)
+        y_sample = x + tf.divide(z_sample, h_sample)
+        return tf.cast(y_sample, tf.float32)
+    

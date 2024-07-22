@@ -95,3 +95,15 @@ class AutoEncoder:
         y_sample = x + tf.divide(z_sample, h_sample)
         return tf.cast(y_sample, tf.float32)
     
+    def random_sample(self, batch_size=32):
+        '''Generate random samples for testing'''
+        msg = np.random.randint(self.M, size=(batch_size, 1))
+        return msg
+
+    def B_Ber_m(self, input_msg, msg):
+        '''Calculate the Batch Bit Error Rate'''
+        batch_size = input_msg.shape[0]
+        pred_error = tf.not_equal(tf.reshape(input_msg, shape=(-1, batch_size)), tf.argmax(msg, 1))
+        bber = tf.reduce_mean(tf.cast(pred_error, tf.float32))
+        return bber
+    

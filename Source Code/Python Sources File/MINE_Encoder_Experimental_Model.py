@@ -120,3 +120,24 @@ class AutoEncoder:
         plt.gca().set_xlim(-2, 2)
         plt.show()
     
+
+# -------------------------------------------- Neural Network Function model for computing scores based on concatenated inputs ------------------------------------------ 
+
+class NNFunction(tf.keras.Model):
+    def __init__(self, hidden_dim, layers, activation, **extra_kwargs):
+        '''Initialize the neural network function.'''
+        super(NNFunction, self).__init__()
+        self._f = tf.keras.Sequential(
+            [tf.keras.layers.Dense(hidden_dim, activation) for _ in range(layers)] +
+            [tf.keras.layers.Dense(1)]
+        )
+
+    def call(self, x, y):
+        '''Compute the scores based on the concatenated inputs.'''
+        batch_size = tf.shape(x)[0]
+        x_tiled = tf.tile(x[None, :], (batch_size, 1, 1))                                                   # Tile x to match the batch size
+        y_tiled = tf.tile(y[:, None], (1, batch_size, 1))                                                   # Tile y to match the batch size
+        xy_pairs = tf.reshape(tf.concat((x_tiled, y_tiled), axis=2), [batch_size * batch_size, -1])         # Concatenate x and y pairs
+        scores = self._f(xy_pairs)                                                                          # Compute scores using the sequential model
+        return tf.transpose(tf.reshape(scores, [batch_size, batch_size]))                                   # Reshape scores and transpose for proper output shape
+    

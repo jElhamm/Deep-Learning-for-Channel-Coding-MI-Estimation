@@ -161,3 +161,16 @@ class Trainer:
         marg_term = marg(scores)
         return joint_term - tf.math.log(marg_term)
     
+    def plot_loss(self, step, epoch, mean_loss, X_batch, y_pred, plot_encoding):
+        '''Print and optionally plot loss during training'''
+        template = 'Iteration: {}, Epoch: {}, Loss: {:.5f}, Batch_BER: {:.5f}'
+        if step % 10 == 0:
+            print(template.format(step, epoch, mean_loss.result(), self.autoencoder.B_Ber_m(X_batch, y_pred)))
+            if plot_encoding:
+                self.autoencoder.test_encoding()
+
+    def plot_batch_loss(self, epoch, mean_loss, X_batch, y_pred):
+        '''Print interim loss during training'''
+        template_outer_loop = 'Interim result for Epoch: {}, Loss: {:.5f}, Batch_BER: {:.5f}'
+        print(template_outer_loop.format(epoch, mean_loss.result(), self.autoencoder.B_Ber_m(X_batch, y_pred)))
+    

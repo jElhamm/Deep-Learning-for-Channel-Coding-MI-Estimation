@@ -141,3 +141,23 @@ class NNFunction(tf.keras.Model):
         scores = self._f(xy_pairs)                                                                          # Compute scores using the sequential model
         return tf.transpose(tf.reshape(scores, [batch_size, batch_size]))                                   # Reshape scores and transpose for proper output shape
     
+
+# ----------------------------------------------- Trainer class for training an autoencoder and neural network function -------------------------------------------------
+
+class Trainer:
+    def __init__(self, autoencoder, nn_function):
+        self.autoencoder = autoencoder
+        self.nn_function = nn_function
+        self.loss_fn = keras.losses.SparseCategoricalCrossentropy()
+        self.mean_loss = keras.metrics.Mean()
+
+    def MINE(self, scores):
+        '''Compute MINE loss'''
+        def marg(x):
+            batch_size = x.shape[0]
+            marg_ = tf.reduce_mean(tf.exp(x - tf.linalg.tensor_diag(np.inf * tf.ones(batch_size))))
+            return marg_ * ((batch_size * batch_size) / (batch_size * (batch_size - 1.)))
+        joint_term = tf.reduce_mean(tf.linalg.diag_part(scores))
+        marg_term = marg(scores)
+        return joint_term - tf.math.log(marg_term)
+    

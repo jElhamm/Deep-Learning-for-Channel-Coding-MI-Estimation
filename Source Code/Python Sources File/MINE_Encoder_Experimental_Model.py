@@ -197,3 +197,20 @@ class Trainer:
             print('Epoch: {}, Mi is {}'.format(epoch, mi_avg))                                                            # Print mutual information for the epoch
             self.mean_loss.reset_states()                                                                                 # Reset mean_loss metric for next epoch
     
+    def train_decoder(self, n_epochs=5, n_steps=20, batch_size=200, learning_rate=0.005, plot_encoding=True):
+        '''Train autoencoder decoder.'''
+        optimizer_ae = keras.optimizers.Nadam(lr=learning_rate)                                                           # Initialize Nadam optimizer for autoencoder decoder
+        for epoch in range(1, n_epochs + 1):
+            print("Training Bob in Epoch {}/{}".format(epoch, n_epochs))
+            for step in range(1, n_steps + 1):
+                X_batch = self.autoencoder.random_sample(batch_size)                                                      # Generate random input batch
+                with tf.GradientTape() as tape:
+                    y_pred = self.autoencoder.autoencoder(X_batch, training=True)                                         # Predict using autoencoder
+                    loss = tf.reduce_mean(self.loss_fn(X_batch, y_pred))                                                  # Compute loss using sparse categorical cross-entropy
+                    gradients = tape.gradient(loss, self.autoencoder.decoder.trainable_variables)                         # Compute gradients
+                    optimizer_ae.apply_gradients(zip(gradients, self.autoencoder.decoder.trainable_variables))            # Apply gradients
+                self.mean_loss(loss)                                                                                      # Update mean_loss metric with current loss
+                self.plot_loss(step, epoch, self.mean_loss, X_batch, y_pred, plot_encoding)                               # Plot loss and encoding (if enabled)
+            self.plot_batch_loss(epoch, self.mean_loss, X_batch, y_pred)                                                  # Plot batch loss for the epoch
+            self.mean_loss.reset_states()                                                                                 # Reset mean_loss metric for next epoch
+    

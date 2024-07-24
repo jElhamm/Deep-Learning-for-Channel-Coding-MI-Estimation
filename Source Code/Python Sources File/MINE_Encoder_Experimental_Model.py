@@ -232,3 +232,15 @@ class Trainer:
                     gradients = tape.gradient(loss, self.autoencoder.encoder.trainable_variables)                         # Compute gradients
                     optimizer_ae.apply_gradients(zip(gradients, self.autoencoder.encoder.trainable_variables))            # Apply gradients
                 mi_avg = -self.mean_loss(loss)                                                                            # Calculate average mutual information
+            with tf.GradientTape() as tape:
+                X_batch = self.autoencoder.random_sample(batch_size)                                                      # Generate random input batch
+                x_enc = self.autoencoder.encoder(X_batch, training=True)                                                  # Encode input batch
+                y_recv = self.autoencoder.channel(x_enc)                                                                  # Simulate channel
+                x = tf.reshape(x_enc, shape=[batch_size, 2 * self.autoencoder.n])                                         # Reshape encoded input
+                y = tf.reshape(y_recv, shape=[batch_size, 2 * self.autoencoder.n])                                        # Reshape received signal
+                score = self.nn_function(x, y)                                                                            # Compute score using neural network function
+                loss = -self.MINE(score)                                                                                  # Calculate loss using MINE estimator
+                gradients = tape.gradient(loss, self.nn_function.trainable_variables)                                     # Compute gradients
+                optimizer_mi.apply_gradients(zip(gradients, self.nn_function.trainable_variables))                        # Apply gradients
+            print('Epoch: {}, Mi is {}'.format(epoch, mi_avg))                                                            # Print mutual information for the epoch
+    

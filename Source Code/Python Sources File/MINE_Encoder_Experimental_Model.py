@@ -308,3 +308,21 @@ def MQAM_rayleigh_approx(M, ebnodb):
     e = b * esno
     return (a / 2) * (1 - np.sqrt(0.5 * e / (1 + 0.5 * e))), a / (2 * b * esno)
     
+ebnodbs = np.linspace(0, 15, 16)                                                                                          # Define range of Eb/N0 values
+fig = plt.figure(figsize=(8, 5))                                                                                          # Create a figure for plotting
+plt.semilogy(bber_data[0], bber_data[1], 'o-', label='AE with MINE')                                                      # Plot the Batch Bit Error Rate (BER) data from the autoencoder test
+
+if rayleigh:                                                                                                              # Plot theoretical error rates based on the channel mode
+    a, b = MQAM_rayleigh_approx(16, ebnodbs)                                                                              # For Rayleigh fading channel
+    plt.plot(ebnodbs, a, 's-', label='16QAM Rayleigh Approx')
+else:
+    plt.plot(ebnodbs, SIXT_QAM_sim(ebnodbs), 's-', label='16QAM AWGN Approx')                                             # For AWGN channel
+
+plt.gca().set_ylim(1e-5, 1)                                                                                               # Set the y-axis to a logarithmic scale and limits
+plt.gca().set_xlim(0, 15)
+plt.ylabel("Batch Symbol Error Rate", fontsize=14, rotation=90)
+plt.xlabel("EbN0 [dB]", fontsize=18)
+plt.legend(prop={'size': 14}, loc='upper right')
+plt.grid(True, which="both")
+plt.show()
+

@@ -269,3 +269,26 @@ class Trainer:
                 print(f'Progress: {db} of {30} parts')
         return (snr_range, bber_vec)
     
+
+# ------------------------------------------------------------initializes an autoencoder and a neural network ---------------------------------------------------------------
+
+# Define parameters
+M = 16
+n = 1
+TRAINING_SNR = 7
+rayleigh = False
+
+autoencoder = AutoEncoder(M=M, n=n, training_snr=TRAINING_SNR, rayleigh=rayleigh)                                         # Initialize AutoEncoder and NNFunction
+critic_params = {
+    'layers': 2,
+    'hidden_dim': 256,
+    'activation': 'relu',
+}
+nn_function = NNFunction(**critic_params)
+trainer = Trainer(autoencoder, nn_function)                                                                               # Initialize Trainer
+trainer.train_mi(n_epochs=1, n_steps=500, batch_size=64)                                                                  # Train mutual information estimator
+trainer.train_encoder(n_epochs=5, n_steps=400, batch_size=64, learning_rate=0.005)                                        # Train encoder
+autoencoder.test_encoding()                                                                                               # Test encoding
+trainer.train_decoder(n_epochs=5, n_steps=400, batch_size=500, learning_rate=0.005, plot_encoding=False)                  # Train decoder
+bber_data = trainer.test_ae()                                                                                             # Test AE
+   

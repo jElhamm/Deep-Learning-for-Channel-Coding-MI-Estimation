@@ -58,3 +58,20 @@ class AutoEncoder:
             self.norm_layer
         ])
     
+        # --------------------------------------------------- Define the channel model --------------------------------------------------------
+        if rayleigh:
+            self.channel = keras.models.Sequential([keras.layers.Lambda(lambda x: self.sample_Rayleigh_channel(x, self.noise_std))])
+        else:
+            self.channel = keras.models.Sequential([self.channel_layer])
+
+        # --------------------------------------------------- Define the decoder model --------------------------------------------------------
+        self.decoder = keras.models.Sequential([
+            keras.layers.InputLayer(input_shape=[2, n]),
+            self.shape_layer2,
+            keras.layers.Dense(M, activation="elu"),
+            keras.layers.Dense(M, activation="softmax")
+        ])
+
+        # Combine encoder, channel, and decoder into an autoencoder model
+        self.autoencoder = keras.models.Sequential([self.encoder, self.channel, self.decoder])
+    

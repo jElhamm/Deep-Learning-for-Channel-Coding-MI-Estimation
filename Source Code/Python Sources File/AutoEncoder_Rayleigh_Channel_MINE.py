@@ -99,3 +99,15 @@ class AutoEncoder:
         bber = tf.reduce_mean(tf.cast(pred_error, tf.float32))
         return bber
     
+    def test_encoding(self):
+        inp = np.arange(0, self.M)
+        coding = self.encoder.predict(inp)
+        fig = plt.figure(figsize=(4,4))
+        plt.plot(coding[:,0], coding[:, 1], "b.")
+        plt.xlabel("$x_1$", fontsize=18)
+        plt.ylabel("$x_2$", fontsize=18, rotation=0)
+        plt.grid(True)
+        plt.gca().set_ylim(-2, 2)
+        plt.gca().set_xlim(-2, 2)
+        plt.show()
+    

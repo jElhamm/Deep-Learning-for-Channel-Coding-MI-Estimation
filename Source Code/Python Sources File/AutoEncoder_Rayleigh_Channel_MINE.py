@@ -111,3 +111,16 @@ class AutoEncoder:
         plt.gca().set_xlim(-2, 2)
         plt.show()
     
+# ------------------------------------------------ NNFunction is a custom neural network model using TensorFlow's Keras API ---------------------------------------------------------- 
+
+class NNFunction(tf.keras.Model):
+    def __init__(self, hidden_dim, layers, activation, **extra_kwargs):
+        """
+            Initialize a neural network model for function approximation.
+        """
+        super(NNFunction, self).__init__()
+        self._f = tf.keras.Sequential(
+            [tf.keras.layers.Dense(hidden_dim, activation) for _ in range(layers)] +
+            [tf.keras.layers.Dense(1)]
+        )
+    

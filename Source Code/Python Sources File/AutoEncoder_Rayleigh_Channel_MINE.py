@@ -135,3 +135,28 @@ class NNFunction(tf.keras.Model):
         scores = self._f(xy_pairs)                                                                                          # Compute scores using the sequential model _f
         return tf.transpose(tf.reshape(scores, [batch_size, batch_size]))
     
+
+# ------------------------------------------------ Trainer class for training an autoencoder and a neural network function model -----------------------------------------------------
+
+class Trainer:
+    def __init__(self, autoencoder, nn_function):
+        """
+            Initialize a trainer for training an autoencoder with mutual information neural estimator (MINE).
+        """
+        self.autoencoder = autoencoder
+        self.nn_function = nn_function
+        self.loss_fn = keras.losses.SparseCategoricalCrossentropy()
+        self.mean_loss = keras.metrics.Mean()
+
+    def MINE(self, scores):
+        """
+            Calculate the mutual information (MI) using the Mutual Information Neural Estimator (MINE) method.
+        """
+        def marg(x):
+            batch_size = x.shape[0]
+            marg_ = tf.reduce_mean(tf.exp(x - tf.linalg.tensor_diag(np.inf * tf.ones(batch_size))))
+            return marg_ * ((batch_size * batch_size) / (batch_size * (batch_size - 1.)))
+        joint_term = tf.reduce_mean(tf.linalg.diag_part(scores))                                                            # Calculate the mean of diagonal elements of scores
+        marg_term = marg(scores)                                                                                            # Calculate the marginal term using the defined function `marg`
+        return joint_term - tf.math.log(marg_term)                                                                          # Return the MI estimation based on MINE
+    

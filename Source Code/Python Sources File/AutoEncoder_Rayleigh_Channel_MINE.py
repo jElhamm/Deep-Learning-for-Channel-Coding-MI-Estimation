@@ -124,3 +124,14 @@ class NNFunction(tf.keras.Model):
             [tf.keras.layers.Dense(1)]
         )
     
+    def call(self, x, y):
+        """
+            Forward pass of the neural network model.
+        """
+        batch_size = tf.shape(x)[0]                                                                                         # Get batch size of input x
+        x_tiled = tf.tile(x[None, :], (batch_size, 1, 1))                                                                   # Tile x to match batch size
+        y_tiled = tf.tile(y[:, None], (1, batch_size, 1))                                                                   # Tile y to match batch size
+        xy_pairs = tf.reshape(tf.concat((x_tiled, y_tiled), axis=2), [batch_size * batch_size, -1])                         # Concatenate and reshape x and y
+        scores = self._f(xy_pairs)                                                                                          # Compute scores using the sequential model _f
+        return tf.transpose(tf.reshape(scores, [batch_size, batch_size]))
+    

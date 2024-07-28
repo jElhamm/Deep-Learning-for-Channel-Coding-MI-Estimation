@@ -159,4 +159,21 @@ class Trainer:
         joint_term = tf.reduce_mean(tf.linalg.diag_part(scores))                                                            # Calculate the mean of diagonal elements of scores
         marg_term = marg(scores)                                                                                            # Calculate the marginal term using the defined function `marg`
         return joint_term - tf.math.log(marg_term)                                                                          # Return the MI estimation based on MINE
+
+    def plot_loss(self, step, epoch, mean_loss, X_batch, y_pred, plot_encoding):
+        """
+            Print and optionally plot loss and Batch Bit Error Rate (BER).
+        """
+        template = 'Iteration: {}, Epoch: {}, Loss: {:.5f}, Batch_BER: {:.5f}'
+        if step % 10 == 0:
+            print(template.format(step, epoch, mean_loss.result(), self.autoencoder.B_Ber_m(X_batch, y_pred)))
+            if plot_encoding:
+                self.autoencoder.test_encoding()
+
+    def plot_batch_loss(self, epoch, mean_loss, X_batch, y_pred):
+        """
+            Print interim results of loss and Batch Bit Error Rate (BER).
+        """
+        template_outer_loop = 'Interim result for Epoch: {}, Loss: {:.5f}, Batch_BER: {:.5f}'
+        print(template_outer_loop.format(epoch, mean_loss.result(), self.autoencoder.B_Ber_m(X_batch, y_pred)))
     

@@ -252,3 +252,28 @@ class Trainer:
                 gradients = tape.gradient(loss, self.nn_function.trainable_variables)                                         # Compute gradients
                 optimizer_mi.apply_gradients(zip(gradients, self.nn_function.trainable_variables))                            # Apply gradients
             print('Epoch: {}, Mi is {}'.format(epoch, mi_avg))
+
+    def Test_AE(self):
+        """
+            Evaluate the autoencoder's performance by calculating Bit Error Rate (BER) for varying Signal-to-Noise Ratios (SNRs).
+        """
+        snr_range = np.linspace(0, 15, 31)                                                                                  # Create a range of SNRs
+        bber_vec = [None] * len(snr_range)                                                                                  # Initialize a list to store BER values
+        for db in range(len(snr_range)):                                                                                    # Loop over each SNR value
+            for it in range(1, 1000):                                                                                       # Perform multiple iterations for each SNR
+                noise_std = self.autoencoder.EbNo_to_noise(snr_range[db])                                                   # Calculate noise standard deviation
+                X_batch = self.autoencoder.random_sample(500)                                                               # Generate random input batch
+                code_word = self.autoencoder.encoder(X_batch)                                                               # Encode input batch
+                if self.autoencoder.rayleigh:
+                    rcvd_word = self.autoencoder.sample_Rayleigh_channel(code_word, noise_std)                              # Apply Rayleigh fading channel
+                else:
+                    rcvd_word = code_word + tf.random.normal(tf.shape(code_word), mean=0.0, stddev=noise_std)               # Add Gaussian noise
+                dcoded_msg = self.autoencoder.decoder(rcvd_word)                                                            # Decode received word
+                bber = self.autoencoder.B_Ber_m(X_batch, dcoded_msg)                                                        # Calculate Bit Error Rate (BER)
+                bber_avg = self.mean_loss(bber)                                                                             # Calculate average BER
+            bber_vec[db] = bber_avg                                                                                         # Store average BER for current SNR
+            self.mean_loss.reset_states()                                                                                   # Reset mean_loss metric
+            if (db % 6 == 0) & (db > 0):                                                                                    # Print progress every 6 parts
+                print(f'Progress: {db} of {30} parts')
+        return (snr_range, bber_vec)
+    

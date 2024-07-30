@@ -289,3 +289,23 @@ trainer.autoencoder.test_encoding()                                             
 trainer.train_decoder(n_epochs=5, n_steps=400, batch_size=500, learning_rate=0.005, plot_encoding=False)                    # Train the decoder
 bber_data = trainer.Test_AE()                                                                                               # Test the autoencoder over varying Signal-to-Noise Ratios (SNRs)
     
+
+# --------------------------------------------------- compares the Symbol Error Rate (SER) for 16-QAM modulation in both AWGN  --------------------------------------------------------
+
+def SIXT_QAM_sim(ebno):
+    """
+        Approximates the Symbol Error Rate (SER) for 16 QAM modulation.
+    """
+    return (3.0 / 2) * special.erfc(np.sqrt((4.0 / 10) * 10.**(ebno / 10)))
+
+def MQAM_rayleigh_approx(M, ebnodb):
+    """
+        Approximates the Symbol Error Rate (SER) for M-QAM modulation over Rayleigh fading channel.
+    """
+    ebno = 10.**(ebnodb / 10)
+    esno = 4 * ebno
+    a = 3.25
+    b = 3 / (M - 1)
+    e = b * esno
+    return (a / 2) * (1 - np.sqrt(0.5 * e / (1 + 0.5 * e))), a / (2 * b * esno)
+    

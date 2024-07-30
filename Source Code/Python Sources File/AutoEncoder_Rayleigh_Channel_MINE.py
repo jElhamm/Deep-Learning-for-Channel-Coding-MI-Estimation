@@ -277,3 +277,15 @@ class Trainer:
                 print(f'Progress: {db} of {30} parts')
         return (snr_range, bber_vec)
     
+
+# --------------------------------------------------------- initializes and trains an autoencoder and a neural network  -------------------------------------------------------------- 
+
+autoencoder = AutoEncoder(M=16, n=1, training_snr=7, rayleigh=True)                                                         # Initialize models and trainer
+score_fn = NNFunction(layers=2, hidden_dim=256, activation='relu')
+trainer = Trainer(autoencoder, score_fn)
+trainer.train_mi(n_epochs=1, n_steps=500, batch_size=64)                                                                    # Train the mutual information (MI) estimator
+trainer.train_encoder(n_epochs=5, n_steps=400, batch_size=64, learning_rate=0.005)                                          # Train the encoder to maximize MI
+trainer.autoencoder.test_encoding()                                                                                         # Test encoding
+trainer.train_decoder(n_epochs=5, n_steps=400, batch_size=500, learning_rate=0.005, plot_encoding=False)                    # Train the decoder
+bber_data = trainer.Test_AE()                                                                                               # Test the autoencoder over varying Signal-to-Noise Ratios (SNRs)
+    

@@ -309,3 +309,15 @@ def MQAM_rayleigh_approx(M, ebnodb):
     e = b * esno
     return (a / 2) * (1 - np.sqrt(0.5 * e / (1 + 0.5 * e))), a / (2 * b * esno)
     
+
+ebnodbs = np.linspace(0, 15, 16)
+fig = plt.figure(figsize=(8, 5))
+plt.semilogy(bber_data[0], bber_data[1], 'o-')
+a, b = MQAM_rayleigh_approx(16, ebnodbs)
+plt.plot(ebnodbs, a)
+plt.gca().set_ylim(1e-2, 1)
+plt.gca().set_xlim(0, 15)
+plt.ylabel("Batch Symbol Error Rate", fontsize=14, rotation=90)
+plt.xlabel("EbN0 [dB]", fontsize=18)
+plt.legend(['AE with MINE', '16QAM'], prop={'size': 14}, loc='upper right')
+plt.grid(True, which="both")

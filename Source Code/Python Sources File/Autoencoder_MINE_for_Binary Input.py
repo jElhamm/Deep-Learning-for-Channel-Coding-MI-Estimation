@@ -36,3 +36,23 @@ TRAINING_SNR = 7
 BINARY_INP = True
 rayleigh = False
     
+
+# ---------------------------------------------- The AutoEncoder class implements an end-to-end communication system using deep learning techniques ------------------------------------------------
+
+class AutoEncoder:
+    def __init__(self, M, n, training_snr, rayleigh=False, binary_input=True):
+        self.M = M
+        self.k = int(np.log2(M))
+        self.n = n
+        self.training_snr = training_snr
+        self.rayleigh = rayleigh
+        self.binary_input = binary_input
+
+        self.noise_std = self.EbNo_to_noise(training_snr)
+
+        # Define custom layers
+        self.norm_layer = layers.Lambda(lambda x: tf.divide(x, tf.sqrt(2 * tf.reduce_mean(tf.square(x)))))
+        self.shape_layer = layers.Lambda(lambda x: tf.reshape(x, shape=[-1, 2, n]))
+        self.shape_layer2 = layers.Lambda(lambda x: tf.reshape(x, shape=[-1, 2 * n]))
+        self.channel_layer = layers.Lambda(lambda x: x + tf.random.normal(tf.shape(x), mean=0.0, stddev=self.noise_std))
+    

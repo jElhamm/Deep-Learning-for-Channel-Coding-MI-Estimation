@@ -56,3 +56,21 @@ class AutoEncoder:
         self.shape_layer2 = layers.Lambda(lambda x: tf.reshape(x, shape=[-1, 2 * n]))
         self.channel_layer = layers.Lambda(lambda x: x + tf.random.normal(tf.shape(x), mean=0.0, stddev=self.noise_std))
     
+        # Define the encoder model
+        if binary_input:
+            self.encoder = keras.models.Sequential([
+                keras.layers.InputLayer(input_shape=[k]),
+                keras.layers.Dense(2 * k, activation="elu"),
+                keras.layers.Dense(2 * n, activation=None),
+                self.shape_layer,
+                self.norm_layer
+            ])
+        else:
+            self.encoder = keras.models.Sequential([
+                keras.layers.Embedding(M, M, embeddings_initializer='glorot_normal', input_length=1),
+                keras.layers.Dense(M, activation="elu"),
+                keras.layers.Dense(2 * n, activation=None),
+                self.shape_layer,
+                self.norm_layer
+            ])
+    

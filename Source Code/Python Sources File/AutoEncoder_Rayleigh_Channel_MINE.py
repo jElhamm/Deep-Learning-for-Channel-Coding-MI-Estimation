@@ -51,7 +51,7 @@ class AutoEncoder:
 
         # --------------------------------------------------- Define the encoder model --------------------------------------------------------
         self.encoder = keras.models.Sequential([
-            keras.layers.Embedding(M, M, embeddings_initializer='glorot_normal', input_length=1),
+            keras.layers.Embedding(M, M, embeddings_initializer='glorot_normal'),
             keras.layers.Dense(M, activation="elu"),
             keras.layers.Dense(2 * n, activation=None),
             self.shape_layer,
@@ -184,7 +184,7 @@ class Trainer:
         """
             Train the neural network using mutual information (MI) estimation.
         """
-        optimizer_mi = keras.optimizers.Nadam(lr=learning_rate)                                                             # Initialize Nadam optimizer for MI estimation
+        optimizer_mi = tf.keras.optimizers.Nadam(learning_rate=learning_rate)                                               # Initialize Nadam optimizer for MI estimation
         for epoch in range(1, n_epochs + 1):
             print("Training in Epoch {}/{}".format(epoch, n_epochs))
             for step in range(1, n_steps + 1):
@@ -198,15 +198,16 @@ class Trainer:
                     loss = -self.MINE(score)                                                                                # Calculate loss using MINE estimator
                     gradients = tape.gradient(loss, self.nn_function.trainable_variables)                                   # Compute gradients
                     optimizer_mi.apply_gradients(zip(gradients, self.nn_function.trainable_variables))                      # Apply gradients
+
                 mi_avg = -self.mean_loss(loss)                                                                              # Calculate average mutual information
             print('Epoch: {}, Mi is {}'.format(epoch, mi_avg))
-            self.mean_loss.reset_states()                                                                                   # Reset mean_loss metric
+            self.mean_loss.reset_state()                                                                                   # Reset mean_loss metric
 
     def train_decoder(self, n_epochs=5, n_steps=20, batch_size=200, learning_rate=0.005, plot_encoding=True):
         """
             Train the autoencoder's decoder.
         """
-        optimizer_ae = keras.optimizers.Nadam(lr=learning_rate)                                                             # Initialize Nadam optimizer for decoder training
+        optimizer_ae = tf.keras.optimizers.Nadam(learning_rate=learning_rate)                                               # Initialize Nadam optimizer for decoder training
         for epoch in range(1, n_epochs + 1):
             print("Training Decoder in Epoch {}/{}".format(epoch, n_epochs))
             for step in range(1, n_steps + 1):
@@ -219,38 +220,38 @@ class Trainer:
                 self.mean_loss(loss)                                                                                        # Update mean_loss metric
                 self.plot_loss(step, epoch, self.mean_loss, X_batch, y_pred, plot_encoding)                                 # Plot loss and possibly encoding
             self.plot_batch_loss(epoch, self.mean_loss, X_batch, y_pred)                                                    # Plot batch loss
-            self.mean_loss.reset_states()                                                                                   # Reset mean_loss metric
+            self.mean_loss.reset_state()                                                                                   # Reset mean_loss metric
     
     def train_encoder(self, n_epochs=5, n_steps=20, batch_size=200, learning_rate=0.05):
         """
             Train the autoencoder's encoder and estimate mutual information (MI).
         """
-        optimizer_mi = keras.optimizers.Nadam(lr=0.005)                                                                       # Initialize Nadam optimizer for MI estimation
-        optimizer_ae = keras.optimizers.Nadam(lr=learning_rate)                                                               # Initialize Nadam optimizer for autoencoder encoder
+        optimizer_mi = tf.keras.optimizers.Nadam(learning_rate=0.005)                                                       # Initialize Nadam optimizer for MI estimation
+        optimizer_ae = tf.keras.optimizers.Nadam(learning_rate=learning_rate)                                               # Initialize Nadam optimizer for autoencoder encoder
         for epoch in range(1, n_epochs + 1):
             print("Training Encoder in Epoch {}/{}".format(epoch, n_epochs))
             for step in range(1, n_steps + 1):
-                X_batch = self.autoencoder.random_sample(batch_size)                                                          # Generate random input batch
+                X_batch = self.autoencoder.random_sample(batch_size)                                                        # Generate random input batch
                 with tf.GradientTape() as tape:
-                    x_enc = self.autoencoder.encoder(X_batch, training=True)                                                  # Encode input batch
-                    y_recv = tf.grad_pass_through(self.autoencoder.channel)(x_enc)                                            # Simulate channel with gradient pass-through
-                    x = tf.reshape(x_enc, shape=[batch_size, 2 * self.autoencoder.n])                                         # Reshape encoded input
-                    y = tf.reshape(y_recv, shape=[batch_size, 2 * self.autoencoder.n])                                        # Reshape received signal
-                    score = self.nn_function(x, y)                                                                            # Compute score using neural network function
-                    loss = -self.MINE(score)                                                                                  # Calculate loss using MINE estimator
-                    gradients = tape.gradient(loss, self.autoencoder.encoder.trainable_variables)                             # Compute gradients
-                    optimizer_ae.apply_gradients(zip(gradients, self.autoencoder.encoder.trainable_variables))                # Apply gradients
-                mi_avg = -self.mean_loss(loss)                                                                                # Calculate average mutual information
+                    x_enc = self.autoencoder.encoder(X_batch, training=True)                                                # Encode input batch
+                    y_recv = tf.identity(self.autoencoder.channel(x_enc))                                                   # Simulate channel with gradient pass-through
+                    x = tf.reshape(x_enc, shape=[batch_size, 2 * self.autoencoder.n])                                       # Reshape encoded input
+                    y = tf.reshape(y_recv, shape=[batch_size, 2 * self.autoencoder.n])                                      # Reshape received signal
+                    score = self.nn_function(x, y)                                                                          # Compute score using neural network function
+                    loss = -self.MINE(score)                                                                                # Calculate loss using MINE estimator
+                    gradients = tape.gradient(loss, self.autoencoder.encoder.trainable_variables)                           # Compute gradients
+                    optimizer_ae.apply_gradients(zip(gradients, self.autoencoder.encoder.trainable_variables))              # Apply gradients
+                mi_avg = -self.mean_loss(loss)                                                                              # Calculate average mutual information
             with tf.GradientTape() as tape:
-                X_batch = self.autoencoder.random_sample(batch_size)                                                          # Generate random input batch
-                x_enc = self.autoencoder.encoder(X_batch, training=True)                                                      # Encode input batch
-                y_recv = self.autoencoder.channel(x_enc)                                                                      # Simulate channel
-                x = tf.reshape(x_enc, shape=[batch_size, 2 * self.autoencoder.n])                                             # Reshape encoded input
-                y = tf.reshape(y_recv, shape=[batch_size, 2 * self.autoencoder.n])                                            # Reshape received signal
-                score = self.nn_function(x, y)                                                                                # Compute score using neural network function
-                loss = -self.MINE(score)                                                                                      # Calculate loss using MINE estimator
-                gradients = tape.gradient(loss, self.nn_function.trainable_variables)                                         # Compute gradients
-                optimizer_mi.apply_gradients(zip(gradients, self.nn_function.trainable_variables))                            # Apply gradients
+                X_batch = self.autoencoder.random_sample(batch_size)                                                        # Generate random input batch
+                x_enc = self.autoencoder.encoder(X_batch, training=True)                                                    # Encode input batch
+                y_recv = self.autoencoder.channel(x_enc)                                                                    # Simulate channel
+                x = tf.reshape(x_enc, shape=[batch_size, 2 * self.autoencoder.n])                                           # Reshape encoded input
+                y = tf.reshape(y_recv, shape=[batch_size, 2 * self.autoencoder.n])                                          # Reshape received signal
+                score = self.nn_function(x, y)                                                                              # Compute score using neural network function
+                loss = -self.MINE(score)                                                                                    # Calculate loss using MINE estimator
+                gradients = tape.gradient(loss, self.nn_function.trainable_variables)                                       # Compute gradients
+                optimizer_mi.apply_gradients(zip(gradients, self.nn_function.trainable_variables))                          # Apply gradients
             print('Epoch: {}, Mi is {}'.format(epoch, mi_avg))
 
     def Test_AE(self):
@@ -280,14 +281,14 @@ class Trainer:
 
 # --------------------------------------------------------- initializes and trains an autoencoder and a neural network  -------------------------------------------------------------- 
 
-autoencoder = AutoEncoder(M=16, n=1, training_snr=7, rayleigh=True)                                                         # Initialize models and trainer
+autoencoder = AutoEncoder(M=16, n=1, training_snr=7, rayleigh=True)
 score_fn = NNFunction(layers=2, hidden_dim=256, activation='relu')
 trainer = Trainer(autoencoder, score_fn)
-trainer.train_mi(n_epochs=1, n_steps=500, batch_size=64)                                                                    # Train the mutual information (MI) estimator
-trainer.train_encoder(n_epochs=5, n_steps=400, batch_size=64, learning_rate=0.005)                                          # Train the encoder to maximize MI
-trainer.autoencoder.test_encoding()                                                                                         # Test encoding
-trainer.train_decoder(n_epochs=5, n_steps=400, batch_size=500, learning_rate=0.005, plot_encoding=False)                    # Train the decoder
-bber_data = trainer.Test_AE()                                                                                               # Test the autoencoder over varying Signal-to-Noise Ratios (SNRs)
+trainer.train_mi(n_epochs=1, n_steps=500, batch_size=64)
+trainer.train_encoder(n_epochs=5, n_steps=400, batch_size=64, learning_rate=0.005)
+trainer.autoencoder.test_encoding()
+trainer.train_decoder(n_epochs=5, n_steps=400, batch_size=500, learning_rate=0.005, plot_encoding=False)
+bber_data = trainer.Test_AE()
     
 
 # --------------------------------------------------- compares the Symbol Error Rate (SER) for 16-QAM modulation in both AWGN  --------------------------------------------------------

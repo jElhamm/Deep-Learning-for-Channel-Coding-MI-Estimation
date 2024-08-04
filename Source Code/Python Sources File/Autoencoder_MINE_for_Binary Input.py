@@ -89,3 +89,23 @@ class AutoEncoder:
         y_sample = x + tf.divide(z_sample, h_sample)                                                                                    # Add noise to the signal
         return tf.cast(y_sample, tf.float32)                                                                                            # Return noisy signal
     
+    def random_sample(self, batch_size=32):
+        '''Generate random binary or integer samples.'''
+        if self.binary_input:
+            msg = np.random.randint(2, size=(batch_size, self.k))                                                                       # Binary input
+        else:
+            msg = np.random.randint(self.M, size=(batch_size, 1))                                                                       # Integer input
+        return msg
+
+    def B_Ber_m(self, input_msg, msg):
+        '''Compute the Batch Bit Error Rate (BBER).'''
+        batch_size = input_msg.shape[0]
+        if self.binary_input:
+            pred_error = tf.not_equal(input_msg, tf.round(msg))                                                                         # Compare predictions with actual
+            pred_error_msg = tf.reduce_max(tf.cast(pred_error, tf.float32), axis=1)                                                     # Max error per sample
+            bber = tf.reduce_mean(pred_error_msg)                                                                                       # Mean error over batch
+        else:
+            pred_error = tf.not_equal(tf.reshape(input_msg, shape=(-1, batch_size)), tf.argmax(msg, 1))                                 # Compare class predictions
+            bber = tf.reduce_mean(tf.cast(pred_error, tf.float32))                                                                      # Mean error over batch
+        return bber
+    

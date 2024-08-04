@@ -74,3 +74,18 @@ class AutoEncoder:
                 self.norm_layer
             ])
     
+    # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            
+    def EbNo_to_noise(self, ebnodb):
+        '''Convert Eb/N0 (dB) to noise standard deviation.'''
+        ebno = 10**(ebnodb / 10)                                                                                                        # Convert dB to linear scale
+        noise_std = 1 / np.sqrt(2 * (self.k / self.n) * ebno)                                                                           # Compute noise std deviation
+        return noise_std
+
+    def sample_Rayleigh_channel(self, x, noise_std):
+        '''Simulate a Rayleigh channel with noise.'''
+        h_sample = (1 / np.sqrt(2)) * tf.sqrt(tf.random.normal(tf.shape(x))**2 + tf.random.normal(tf.shape(x))**2)                      # Generate Rayleigh channel coefficients
+        z_sample = tf.random.normal(tf.shape(x), stddev=noise_std)                                                                      # Generate noise
+        y_sample = x + tf.divide(z_sample, h_sample)                                                                                    # Add noise to the signal
+        return tf.cast(y_sample, tf.float32)                                                                                            # Return noisy signal
+    

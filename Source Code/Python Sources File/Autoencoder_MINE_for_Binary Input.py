@@ -134,3 +134,11 @@ class NNFunction(tf.keras.Model):
             [tf.keras.layers.Dense(1)]
         )
     
+    def call(self, x, y):
+        batch_size = tf.shape(x)[0]
+        x_tiled = tf.tile(x[None, :], (batch_size, 1, 1))
+        y_tiled = tf.tile(y[:, None], (1, batch_size, 1))
+        xy_pairs = tf.reshape(tf.concat((x_tiled, y_tiled), axis=2), [batch_size * batch_size, -1])
+        scores = self._f(xy_pairs)
+        return tf.transpose(tf.reshape(scores, [batch_size, batch_size]))
+    

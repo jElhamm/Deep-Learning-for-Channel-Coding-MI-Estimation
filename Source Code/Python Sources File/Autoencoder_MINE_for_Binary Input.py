@@ -173,3 +173,25 @@ class Trainer:
         template_outer_loop = 'Interim result for Epoch: {}, Loss: {:.5f}, Batch_BER: {:.5f}'
         print(template_outer_loop.format(epoch, mean_loss.result(), self.autoencoder.B_Ber_m(X_batch, y_pred)))
     
+
+# --------------------------------------------------------------------------------- TRAINING METHODS --------------------------------------------------------------------------------------------
+
+    def train_mi(self, n_epochs=5, n_steps=20, batch_size=200, learning_rate=0.005):
+        optimizer_mi = tf.keras.optimizers.Nadam(learning_rate=learning_rate)                                                           # Initialize optimizer with specified learning rate
+        for epoch in range(1, n_epochs + 1):
+            print("Training in Epoch {}/{}".format(epoch, n_epochs))
+            for step in range(1, n_steps + 1):
+                X_batch = self.autoencoder.random_sample(batch_size)                                                                    # Generate a batch of random samples
+                with tf.GradientTape() as tape:                                                                                         # Compute gradients using a gradient tape
+                    x_enc = self.autoencoder.encoder(X_batch, training=True)                                                            # Encode the batch of samples
+                    y_recv = self.autoencoder.channel(x_enc)                                                                            # Pass the encoded samples through the channel
+                    x = tf.reshape(x_enc, shape=[batch_size, 2 * self.autoencoder.n])                                                   # Reshape tensors for mutual information estimation
+                    y = tf.reshape(y_recv, shape=[batch_size, 2 * self.autoencoder.n])
+                    score = self.nn_function(x, y)                                                                                      # Compute mutual information score
+                    loss = -self.MINE(score)                                                                                            # Compute loss as negative MINE score
+                    gradients = tape.gradient(loss, self.nn_function.trainable_variables)                                               # Compute gradients with respect to NNFunction variables
+                    optimizer_mi.apply_gradients(zip(gradients, self.nn_function.trainable_variables))                                  # Apply gradients to update NNFunction weights
+                mi_avg = -self.mean_loss(loss)                                                                                          # Average mutual information loss over the steps
+            print('Epoch: {}, Mi is {}'.format(epoch, mi_avg))
+            self.mean_loss.reset_state()                                                                                                # Reset the mean loss metric for the next epoch
+    

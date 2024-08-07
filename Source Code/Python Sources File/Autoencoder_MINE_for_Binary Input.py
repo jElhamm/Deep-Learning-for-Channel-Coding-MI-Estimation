@@ -239,3 +239,27 @@ class Trainer:
                 gradients = tape.gradient(loss, self.nn_function.trainable_variables)                                                   # Compute gradients
                 optimizer_mi.apply_gradients(zip(gradients, self.nn_function.trainable_variables))                                      # Update weights
     
+
+# ---------------------------------------------------------------------- TEST METHODS -------------------------------------------------------------------------------------
+    def Test_AE(self):
+        '''Calculate Bit Error for varying SNRs'''
+        snr_range = np.linspace(0, 15, 31)                                                                                              # Define the range of SNR values to test
+        bber_vec = [None] * len(snr_range)                                                                                              # Initialize a list to store Bit Error Rate (BBER) for each SNR
+        for db in range(len(snr_range)):
+            for it in range(1, 1000):
+                noise_std = self.autoencoder.EbNo_to_noise(snr_range[db])                                                               # Convert SNR value to noise standard deviation
+                X_batch = self.autoencoder.random_sample(500)                                                                           # Generate a batch of random samples
+                code_word = self.autoencoder.encoder(X_batch)                                                                           # Encode the samples
+                if self.autoencoder.rayleigh:                                                                                           # Simulate channel reception based on Rayleigh fading or AWGN
+                    rcvd_word = self.autoencoder.sample_Rayleigh_channel(code_word, noise_std)
+                else:
+                    rcvd_word = code_word + tf.random.normal(tf.shape(code_word), mean=0.0, stddev=noise_std)
+                dcoded_msg = self.autoencoder.decoder(rcvd_word)                                                                        # Decode the received samples
+                bber = self.autoencoder.B_Ber_m(X_batch, dcoded_msg)                                                                    # Compute Bit Error Rate (BBER)
+                bber_avg = self.mean_loss(bber)                                                                                         # Average BBER over trials
+            bber_vec[db] = bber_avg                                                                                                     # Store the average BBER for the current SNR
+            self.mean_loss.reset_state()                                                                                                # Reset the mean loss metric
+            if (db % 6 == 0) & (db > 0):                                                                                                # Print progress every 6 SNR steps
+                print(f'Progress: {db} of {30} parts')
+        return (snr_range, bber_vec)
+    

@@ -263,3 +263,18 @@ class Trainer:
                 print(f'Progress: {db} of {30} parts')
         return (snr_range, bber_vec)
     
+
+# ------------------------------------------------------------ initializes and trains an autoencoder and a neural network  ----------------------------------------------------------------------- 
+    
+score_fn = NNFunction(hidden_dim=256, layers=2, activation='relu')                                                                      # Initialize the NNFunction and AutoEncoder
+autoencoder = AutoEncoder(M=M, n=n, training_snr=TRAINING_SNR, rayleigh=rayleigh, binary_input=BINARY_INP)
+trainer = Trainer(autoencoder, score_fn)
+trainer.train_mi(n_epochs=1, n_steps=500, batch_size=64)                                                                                # Train Mutual Information Estimator
+trainer.train_encoder(n_epochs=5, n_steps=400, batch_size=64, learning_rate=0.005)                                                      # Train Encoder
+autoencoder.test_encoding()                                                                                                             # Test Encoding
+trainer.train_encoder(n_epochs=5, n_steps=400, batch_size=64, learning_rate=0.001)                                                      # Continue Training Encoder
+autoencoder.test_encoding()                                                                                                             # Test Encoding
+trainer.train_decoder(n_epochs=5, n_steps=400, batch_size=500, learning_rate=0.015, plot_encoding=False)                                # Train Decoder
+trainer.train_decoder(n_epochs=4, ن_steps=400, batch_size=500, learning_rate=0.01, plot_encoding=False)                                 # Continue Training Decoder
+trainer.train_decoder(n_epochs=1, n_steps=500, batch_size=500, learning_rate=0.005, plot_encoding=False)                                # Final Training of Decoder
+    

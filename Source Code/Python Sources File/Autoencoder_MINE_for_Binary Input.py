@@ -211,3 +211,20 @@ class Trainer:
             self.plot_batch_loss(epoch, self.mean_loss, X_batch, y_pred)                                                                # Plot the batch loss for the current epoch
             self.mean_loss.reset_state()                                                                                                # Reset the mean loss metric for the next epoch
     
+    def train_encoder(self, n_epochs=5, n_steps=20, batch_size=200, learning_rate=0.005):
+        optimizer_ae = tf.keras.optimizers.Nadam(learning_rate=learning_rate)                                                           # Initialize optimizer with specified learning rate
+        optimizer_mi = tf.keras.optimizers.Nadam(learning_rate=0.005)                                                                   # Initialize optimizer with a fixed learning rate
+        for epoch in range(1, n_epochs + 1):
+            print("Training Bob in Epoch {}/{}".format(epoch, n_epochs))
+            for step in range(1, n_steps + 1):
+                X_batch = self.autoencoder.random_sample(batch_size)                                                                    # Generate a batch of random samples
+                with tf.GradientTape() as tape:                                                                                         # Compute gradients using a gradient tape
+                    x_enc = self.autoencoder.encoder(X_batch, training=True)                                                            # Encode the batch of samples
+                    y_recv = tf.identity(self.autoencoder.channel(x_enc))                                                               # Pass the encoded samples through the channel
+                    x = tf.reshape(x_enc, shape=[batch_size, 2 * self.autoencoder.n])                                                   # Reshape the tensors for MI estimation
+                    y = tf.reshape(y_recv, shape=[batch_size, 2 * self.autoencoder.n])
+                    score = self.nn_function(x, y)                                                                                      # Compute mutual information score
+                    loss = -self.MINE(score)                                                                                            # Compute loss as negative MINE score
+                    gradients = tape.gradient(loss, self.autoencoder.encoder.trainable_variables)                                       # Compute gradients with respect to encoder variables
+                    optimizer_ae.apply_gradients(zip(gradients, self.autoencoder.encoder.trainable_variables))                          # Apply gradients to update encoder weights
+                mi_avg = -self.mean_loss(loss)                                                                                          # Average mutual information loss over the steps

@@ -228,3 +228,14 @@ class Trainer:
                     gradients = tape.gradient(loss, self.autoencoder.encoder.trainable_variables)                                       # Compute gradients with respect to encoder variables
                     optimizer_ae.apply_gradients(zip(gradients, self.autoencoder.encoder.trainable_variables))                          # Apply gradients to update encoder weights
                 mi_avg = -self.mean_loss(loss)                                                                                          # Average mutual information loss over the steps
+            with tf.GradientTape() as tape:                                                                                             # Compute and update mutual information estimator
+                X_batch = self.autoencoder.random_sample(batch_size)                                                                    # Sample batch data
+                x_enc = self.autoencoder.encoder(X_batch, training=True)                                                                # Encode batch data
+                y_recv = self.autoencoder.channel(x_enc)                                                                                # Pass encoded data through channel
+                x = tf.reshape(x_enc, shape=[batch_size, 2 * self.autoencoder.n])                                                       # Reshape encoded data
+                y = tf.reshape(y_recv, shape=[batch_size, 2 * self.autoencoder.n])                                                      # Reshape received data
+                score = self.nn_function(x, y)                                                                                          # Compute mutual information score
+                loss = -self.MINE(score)                                                                                                # Calculate loss as negative MINE score
+                gradients = tape.gradient(loss, self.nn_function.trainable_variables)                                                   # Compute gradients
+                optimizer_mi.apply_gradients(zip(gradients, self.nn_function.trainable_variables))                                      # Update weights
+    
